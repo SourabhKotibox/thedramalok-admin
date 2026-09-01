@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useTheme } from "next-themes";
 import { getImageUrl, useGetPublicNotifications } from "@/lib/api-client";
-import { Play } from "lucide-react";
+import { Play, Search, Bell, Crown, User } from "lucide-react";
 
 export default function PublicHeader({
   activeTab, setActiveTab, onSignIn, onSignOut, user, onSubscribeClick,
@@ -12,6 +12,8 @@ export default function PublicHeader({
   onSignIn?: () => void; onSignOut?: () => void; user?: any; onSubscribeClick?: () => void;
 }) {
   const [scrolled, setScrolled] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const [, setLocation] = useLocation();
 
   const { settings } = useSettings();
@@ -29,6 +31,14 @@ export default function PublicHeader({
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  const handleSearchClick = () => {
+    setLocation("/browse");
+  };
+
+  const handleSubscribeClick = () => {
+    setLocation("/membership");
+  };
 
   return (
     <header className={`fixed top-0 right-0 left-0 lg:left-[72px] z-40 transition-all duration-300 ${scrolled ? "bg-[#0a0a10]/95 backdrop-blur-md shadow-md border-b border-white/5" : "bg-gradient-to-b from-[#030306]/90 via-[#030306]/40 to-transparent"}`}>
@@ -48,7 +58,24 @@ export default function PublicHeader({
               )}
             </Link>
           </div>
-          
+
+          {/* Mobile actions: search + subscribe */}
+          <div className="flex items-center gap-2 lg:hidden">
+            <button
+              onClick={handleSearchClick}
+              className="w-9 h-9 flex items-center justify-center text-white hover:text-white transition-colors rounded-full hover:bg-white/10"
+            >
+              <Search className="w-5 h-5" />
+            </button>
+            <button
+              onClick={handleSubscribeClick}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-full text-[11px] uppercase tracking-wider transition-all"
+            >
+              <Crown className="w-3.5 h-3.5" />
+              Subscribe
+            </button>
+          </div>
+
           {/* Top navbar intentionally kept minimal; navigation and actions are in the sidebar */}
           <div className="hidden lg:block" />
         </div>

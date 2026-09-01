@@ -16,7 +16,7 @@ export function MobileNav() {
   const [location] = useLocation();
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a10]/98 backdrop-blur-xl border-t border-white/5 pb-[env(safe-area-inset-bottom)]">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-black border-t border-white/10 pb-[env(safe-area-inset-bottom)]">
       <div className="flex justify-around items-center h-16 px-2">
         {TABS.map((tab) => {
           const isActive = location === tab.href || 
@@ -30,12 +30,12 @@ export function MobileNav() {
               <a className="flex flex-col items-center justify-center w-full h-full space-y-1">
                 <Icon
                   className={`w-6 h-6 ${
-                    isActive ? 'text-[#e50914]' : 'text-zinc-500'
+                    isActive ? 'text-white' : 'text-white/70'
                   }`}
                 />
                 <span
                   className={`text-[10px] font-medium ${
-                    isActive ? 'text-white' : 'text-zinc-500'
+                    isActive ? 'text-white' : 'text-white/70'
                   }`}
                 >
                   {tab.label}
