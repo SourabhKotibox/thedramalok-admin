@@ -5,10 +5,10 @@ import { Home, Search, Film, Tv, Smartphone, Flame, Mic, User } from 'lucide-rea
 const TABS = [
   { icon: Home, label: 'Home', href: '/' },
   { icon: Search, label: 'Search', href: '/browse' },
-  { icon: Smartphone, label: 'Drama', href: '/short-dramas' },
-  { icon: Film, label: 'Movies', href: '/movies' },
+  { icon: Smartphone, label: 'Drama', href: '/short-dramas-browse' },
+  { icon: Film, label: 'Movies', href: '/movies-browse' },
   { icon: Tv, label: 'TV', href: '/tv-shows-browse' },
-  { icon: Flame, label: 'New', href: '/new-hot' },
+  { icon: Flame, label: 'New', href: '/new-hot-browse' },
   { icon: User, label: 'Me', href: '/account' },
 ];
 

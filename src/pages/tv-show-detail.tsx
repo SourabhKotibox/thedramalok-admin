@@ -6,6 +6,7 @@ import {
   Check, Heart, Download, Smartphone
 } from "lucide-react";
 import { useGetWebDetail, getImageUrl, useGetWishlist, useToggleWishlist, useGetAppProfile, useRequestDownload } from "@/lib/api-client";
+import { useDownloadPermission } from "@/hooks/useDownloadPermission";
 import PublicLayout from "@/components/PublicLayout";
 import SubscriptionPlansModal from "@/components/SubscriptionPlansModal";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +24,7 @@ export default function TVShowDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { canDownload } = useDownloadPermission();
 
   const [activeTab, setActiveTab] = useState<Tab>("tvshows");
   const [user, setUser] = useState<any>(null);
@@ -40,7 +42,6 @@ export default function TVShowDetailPage() {
   const handleSignOut = () => {
     localStorage.removeItem("appUser");
     localStorage.removeItem("appAccessToken");
-    setUser(null);
     window.location.reload();
   };
 
@@ -65,6 +66,7 @@ export default function TVShowDetailPage() {
     if (!user) { toast({ title: "Please sign in to download", variant: "destructive" }); return; }
     const epId = ep._id || ep.id;
     setDownloadingEp(epId);
+    toast({ title: "Downloading started...", description: `${ep.title || 'Episode'} is being downloaded for offline viewing.` });
     try {
       await requestDownloadMutation.mutateAsync({ contentId: id!, contentType: "series", episodeId: epId });
       toast({ title: "Episode added to downloads" });
@@ -131,8 +133,14 @@ export default function TVShowDetailPage() {
 
         {/* Back button */}
         <button
-          onClick={() => setLocation("/")}
-          className="absolute top-20 left-6 sm:left-10 flex items-center gap-2 text-foreground/80 hover:text-foreground text-sm font-semibold transition-colors z-10"
+          onClick={() => {
+            if (window.history.length > 1) {
+              window.history.back();
+            } else {
+              setLocation("/tv-shows-browse");
+            }
+          }}
+          className="absolute top-20 left-6 sm:left-10 flex items-center gap-1.5 text-white/90 hover:text-white text-sm font-semibold transition-colors z-20 cursor-pointer bg-black/50 hover:bg-black/80 px-3.5 py-2 rounded-xl backdrop-blur-md border border-white/10 active:scale-95 shadow-lg"
         >
           <ChevronLeft className="w-4 h-4" /> Back
         </button>
@@ -275,14 +283,16 @@ export default function TVShowDetailPage() {
                       {ep.description && (
                         <p className="text-foreground text-xs mt-1 line-clamp-2 leading-relaxed">{ep.description}</p>
                       )}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleDownloadEpisode(ep); }}
-                        disabled={downloadingEp === (ep._id || ep.id)}
-                        className="mt-2 flex items-center gap-1 text-[10px] font-bold text-foreground hover:text-emerald-400 transition-colors disabled:opacity-50"
-                      >
-                        {downloadingEp === (ep._id || ep.id) ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
-                        {downloadingEp === (ep._id || ep.id) ? "Adding..." : "Download"}
-                      </button>
+                      {canDownload && show?.downloadAllowed !== false && ep?.downloadAllowed !== false && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDownloadEpisode(ep); }}
+                          disabled={downloadingEp === (ep._id || ep.id)}
+                          className="mt-2 flex items-center gap-1 text-[10px] font-bold text-foreground hover:text-emerald-400 transition-colors disabled:opacity-50"
+                        >
+                          {downloadingEp === (ep._id || ep.id) ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+                          {downloadingEp === (ep._id || ep.id) ? "Adding..." : "Download"}
+                        </button>
+                      )}
                     </div>
                   </div>
                 );

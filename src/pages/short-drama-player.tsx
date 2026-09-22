@@ -12,6 +12,7 @@ import {
   useGetAppProfile, useRequestDownload, useToggleLike, useRecordShare, useRecordView,
   useGetDownloads, useRemoveDownload, cacheDownloadedVideo, useUnlockEpisode
 } from "@/lib/api-client";
+import { useDownloadPermission } from "@/hooks/useDownloadPermission";
 import { useToast } from "@/hooks/use-toast";
 import SubscriptionPlansModal from "@/components/SubscriptionPlansModal";
 import { PlayerPrerollAd } from "@/components/AdComponents";
@@ -31,9 +32,11 @@ const fmtCount = (num: number) => {
 };
 
 export default function ShortDramaPlayer() {
-  const { id, epNum } = useParams<{ id: string; epNum: string }>();
+  const { id, epNum: epNumParam } = useParams<{ id: string; epNum?: string }>();
+  const epNum = epNumParam;
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { canDownload } = useDownloadPermission();
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -278,6 +281,7 @@ export default function ShortDramaPlayer() {
       return;
     }
     setDownloading(true);
+    toast({ title: "Downloading started...", description: `${currentEpisode.title || 'Episode'} is being downloaded for offline viewing.` });
     try {
       const res = await requestDownloadMutation.mutateAsync({
         contentId: id!,
@@ -587,22 +591,24 @@ export default function ShortDramaPlayer() {
             </button>
 
             {/* Download Action */}
-            <button
-              onClick={(e) => { e.stopPropagation(); handleDownloadEpisode(); }}
-              disabled={downloading || requestDownloadMutation.isPending || removeDownloadMutation.isPending}
-              className="flex flex-col items-center gap-1 group/float active:scale-90 transition-all text-white disabled:opacity-50"
-            >
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center bg-black/60 border backdrop-blur-md transition-colors group-hover/float:bg-white/20 ${
-                isDownloaded ? "border-emerald-500/40 text-emerald-400" : "border-white/10"
-              }`}>
-                {(downloading || requestDownloadMutation.isPending || removeDownloadMutation.isPending)
-                  ? <Loader2 className="w-4.5 h-4.5 animate-spin" />
-                  : isDownloaded
-                  ? <Check className="w-4.5 h-4.5 text-emerald-400" />
-                  : <Download className="w-4.5 h-4.5" />}
-              </div>
-              <span className="text-[9px] font-bold drop-shadow-md">{isDownloaded ? "Saved" : "Save"}</span>
-            </button>
+            {canDownload && currentEpisode?.downloadAllowed !== false && (
+              <button
+                onClick={(e) => { e.stopPropagation(); handleDownloadEpisode(); }}
+                disabled={downloading || requestDownloadMutation.isPending || removeDownloadMutation.isPending}
+                className="flex flex-col items-center gap-1 group/float active:scale-90 transition-all text-white disabled:opacity-50"
+              >
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center bg-black/60 border backdrop-blur-md transition-colors group-hover/float:bg-white/20 ${
+                  isDownloaded ? "border-emerald-500/40 text-emerald-400" : "border-white/10"
+                }`}>
+                  {(downloading || requestDownloadMutation.isPending || removeDownloadMutation.isPending)
+                    ? <Loader2 className="w-4.5 h-4.5 animate-spin" />
+                    : isDownloaded
+                    ? <Check className="w-4.5 h-4.5 text-emerald-400" />
+                    : <Download className="w-4.5 h-4.5" />}
+                </div>
+                <span className="text-[9px] font-bold drop-shadow-md">{isDownloaded ? "Saved" : "Save"}</span>
+              </button>
+            )}
 
             {/* Episodes List Trigger */}
             <button

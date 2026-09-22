@@ -224,7 +224,15 @@ export default function PublicAuthPage() {
         <div className="flex flex-col items-center text-center mb-8">
           <Link href="/" className="flex items-center gap-2.5 mb-6 group">
             {logoUrl ? (
-              <img src={logoUrl} alt={settings.platformName || "StreamIT"} className="h-10 w-auto object-contain group-hover:scale-105 transition-transform" />
+              <img
+                src={logoUrl}
+                alt={settings.platformName || "StreamIT"}
+                className="w-auto object-contain group-hover:scale-105 transition-transform"
+                style={{
+                  height: `${(resolvedTheme === "dark" ? (settings.darkLogoSize || 40) : (settings.lightLogoSize || 40)) * 1.1}px`,
+                  maxHeight: "64px"
+                }}
+              />
             ) : (
               <>
                 <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/50 group-hover:scale-105 transition-transform">

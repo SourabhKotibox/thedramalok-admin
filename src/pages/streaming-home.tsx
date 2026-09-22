@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link, useLocation, useSearch } from "wouter";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useTheme } from "next-themes";
-import { getImageUrl, useGetPublicAds, recordAdInteraction } from "@/lib/api-client";
+import { getImageUrl, useGetPublicAds, recordAdInteraction, getPublicStories } from "@/lib/api-client";
 import { HomeBannerAd, GoogleAdsenseBanner, PlayerPrerollAd } from "@/components/AdComponents";
 import {
   Play, Pause, Search, ChevronLeft, ChevronRight, X,
@@ -29,7 +29,7 @@ interface ContentItem {
   title: string;
   poster: string;
   backdrop: string;
-  type: "movie" | "show";
+  type: "movie" | "show" | "story";
   year?: string;
   duration?: string;
   imdbRating?: string;
@@ -823,20 +823,18 @@ function HomeTab({ onPlay, onSelectDrama, onSubscribeClick, isSubscribed }: {
   const { data: allContentRes, isLoading: isAllContentLoading } = useGetWebAllContent();
   
   const [stories, setStories] = useState<any[]>([]);
-  const [storiesLoading, setStoriesLoading] = useState(true);
   
   useEffect(() => {
     const fetchStories = async () => {
       try {
-        const res = await fetch('/api/stories/public');
-        const data = await res.json();
-        if (data.success) {
+        const data = await getPublicStories();
+        if (data && data.success) {
           setStories(data.data || []);
+        } else if (Array.isArray(data)) {
+          setStories(data);
         }
       } catch (err) {
         console.error('Failed to fetch stories:', err);
-      } finally {
-        setStoriesLoading(false);
       }
     };
     fetchStories();
@@ -851,7 +849,7 @@ function HomeTab({ onPlay, onSelectDrama, onSubscribeClick, isSubscribed }: {
   const movies = allContentRes?.movies || [];
   const dramas = allContentRes?.dramas || [];
 
-  if (isHomeLoading || isSectionsLoading || isAllContentLoading || storiesLoading || !homeData) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-red-600" /></div>;
+  if (isHomeLoading || isSectionsLoading || isAllContentLoading || !homeData) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-red-600" /></div>;
 
   return (
     <div className="pb-20 space-y-12 pt-8">
@@ -954,6 +952,29 @@ function HomeTab({ onPlay, onSelectDrama, onSubscribeClick, isSubscribed }: {
           );
         })}
 
+      {/* Audio Stories row on Home page */}
+      {stories.length > 0 && (
+        <ContentRow
+          title="Trending Audio Stories"
+          icon={<Mic className="w-4 h-4 text-red-500" />}
+          items={stories.map((s: any) => ({
+            id: s.id || s._id,
+            title: s.title,
+            poster: s.thumbnail || s.coverImage || s.bannerImage,
+            backdrop: s.bannerImage || s.thumbnail,
+            type: "story",
+            year: s.author ? `by ${s.author}` : "",
+            duration: s.duration ? `${s.duration}m` : "",
+            ageRating: s.planRequired === "free" ? "FREE" : "PRO",
+            description: s.description || `${s.views || 0} views`,
+            badge: s.trending ? "TRENDING" : s.featured ? "TOP" : undefined,
+            isPremium: s.planRequired !== "free",
+          }))}
+          onPlay={(item: any) => setLocation(`/story/${item.id}`)}
+          onSeeAll={() => setLocation('/stories')}
+          size="md"
+        />
+      )}
 
       {/* Subscribe Banner if there are dynamic sections, to ensure it always renders at bottom if not shown in hardcoded fallback */}
       {!isSubscribed && <SubscribeBanner onSubscribeClick={onSubscribeClick} />}
@@ -1117,7 +1138,15 @@ function SignInModal({ onClose }: { onClose: () => void }) {
           <div className="absolute inset-0 bg-gradient-to-br from-red-600/30 via-black/90 to-[#030306]/95 z-0" />
           <div className="relative z-10 flex flex-col items-center justify-center h-full gap-3">
             {logoUrl ? (
-              <img src={logoUrl} alt={settings.platformName || "StreamIT"} className="h-16 w-auto object-contain drop-shadow-2xl" />
+              <img
+                src={logoUrl}
+                alt={settings.platformName || "StreamIT"}
+                className="w-auto object-contain drop-shadow-2xl transition-all"
+                style={{
+                  height: `${(resolvedTheme === "dark" ? (settings.darkLogoSize || 36) : (settings.lightLogoSize || 36)) * 1.4}px`,
+                  maxHeight: "80px"
+                }}
+              />
             ) : (
               <>
                 <div className="w-12 h-12 rounded-2xl bg-red-600 flex items-center justify-center shadow-lg shadow-red-600/50">

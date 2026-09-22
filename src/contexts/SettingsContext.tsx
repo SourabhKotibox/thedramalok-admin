@@ -6,6 +6,8 @@ export interface AppSettings {
   logoUrl: string;
   darkLogoUrl: string;
   lightLogoUrl: string;
+  darkLogoSize?: number;
+  lightLogoSize?: number;
   faviconUrl: string;
   logoStyle: 'icon' | 'fill';
   platformName: string;
@@ -89,7 +91,23 @@ export interface AppSettings {
   currencyPosition: 'before' | 'after';
   decimalPlaces: number;
   // Storage
-  storageDriver: 'local' | 'bunny';
+  storageDriver: 'local' | 's3' | 'digitalocean' | 'bunny' | string;
+  awsBucket?: string;
+  awsRegion?: string;
+  awsAccessKeyId?: string;
+  awsSecretAccessKey?: string;
+  awsAccessKey?: string;
+  awsSecretKey?: string;
+  doSpaceName?: string;
+  doRegion?: string;
+  doAccessKey?: string;
+  doSecretKey?: string;
+  doEndpoint?: string;
+  digitalOceanSpaceName?: string;
+  digitalOceanRegion?: string;
+  digitalOceanAccessKey?: string;
+  digitalOceanSecretKey?: string;
+  digitalOceanEndpoint?: string;
   bunnyStorageZone: string;
   bunnyAccessKey: string;
   bunnyCdnUrl: string;
@@ -122,6 +140,8 @@ const DEFAULT: AppSettings = {
   logoUrl: "https://i.imgur.com/45cG5Kc.png",
   darkLogoUrl: "https://i.imgur.com/45cG5Kc.png",
   lightLogoUrl: "https://i.imgur.com/45cG5Kc.png",
+  darkLogoSize: 36,
+  lightLogoSize: 36,
   faviconUrl: "",
   logoStyle: "fill",
   platformName: "The Drama Lok",
@@ -205,8 +225,24 @@ const DEFAULT: AppSettings = {
   currencyPosition: 'before',
   decimalPlaces: 2,
   // Storage
-   storageDriver: 'local',
-   bunnyStorageZone: "",
+  storageDriver: 'local',
+  awsBucket: "",
+  awsRegion: "",
+  awsAccessKeyId: "",
+  awsSecretAccessKey: "",
+  awsAccessKey: "",
+  awsSecretKey: "",
+  doSpaceName: "",
+  doRegion: "",
+  doAccessKey: "",
+  doSecretKey: "",
+  doEndpoint: "",
+  digitalOceanSpaceName: "",
+  digitalOceanRegion: "",
+  digitalOceanAccessKey: "",
+  digitalOceanSecretKey: "",
+  digitalOceanEndpoint: "",
+  bunnyStorageZone: "",
   bunnyAccessKey: "",
   bunnyCdnUrl: "",
   // SEO
@@ -242,6 +278,8 @@ function mapApiData(api: any): AppSettings {
     logoUrl: img(api.logoUrl),
     darkLogoUrl: img(api.darkLogoUrl),
     lightLogoUrl: img(api.lightLogoUrl),
+    darkLogoSize: api.darkLogoSize ? Number(api.darkLogoSize) : DEFAULT.darkLogoSize,
+    lightLogoSize: api.lightLogoSize ? Number(api.lightLogoSize) : DEFAULT.lightLogoSize,
     faviconUrl: img(api.faviconUrl),
     logoStyle: api.logoStyle || DEFAULT.logoStyle,
     platformName: api.platformName || "",
@@ -325,8 +363,24 @@ function mapApiData(api: any): AppSettings {
     currencyPosition: api.currencyPosition || DEFAULT.currencyPosition,
     decimalPlaces: api.decimalPlaces ?? DEFAULT.decimalPlaces,
     // Storage
-     storageDriver: api.storageDriver || DEFAULT.storageDriver,
-     bunnyStorageZone: api.bunnyStorageZone || "",
+    storageDriver: api.storageDriver || DEFAULT.storageDriver,
+    awsBucket: api.awsBucket || DEFAULT.awsBucket,
+    awsRegion: api.awsRegion || DEFAULT.awsRegion,
+    awsAccessKeyId: api.awsAccessKeyId || DEFAULT.awsAccessKeyId,
+    awsSecretAccessKey: api.awsSecretAccessKey || DEFAULT.awsSecretAccessKey,
+    awsAccessKey: api.awsAccessKey || api.awsAccessKeyId || DEFAULT.awsAccessKey,
+    awsSecretKey: api.awsSecretKey || api.awsSecretAccessKey || DEFAULT.awsSecretKey,
+    doSpaceName: api.doSpaceName || api.digitalOceanSpaceName || DEFAULT.doSpaceName,
+    doRegion: api.doRegion || api.digitalOceanRegion || DEFAULT.doRegion,
+    doAccessKey: api.doAccessKey || api.digitalOceanAccessKey || DEFAULT.doAccessKey,
+    doSecretKey: api.doSecretKey || api.digitalOceanSecretKey || DEFAULT.doSecretKey,
+    doEndpoint: api.doEndpoint || api.digitalOceanEndpoint || DEFAULT.doEndpoint,
+    digitalOceanSpaceName: api.digitalOceanSpaceName || api.doSpaceName || DEFAULT.digitalOceanSpaceName,
+    digitalOceanRegion: api.digitalOceanRegion || api.doRegion || DEFAULT.digitalOceanRegion,
+    digitalOceanAccessKey: api.digitalOceanAccessKey || api.doAccessKey || DEFAULT.digitalOceanAccessKey,
+    digitalOceanSecretKey: api.digitalOceanSecretKey || api.doSecretKey || DEFAULT.digitalOceanSecretKey,
+    digitalOceanEndpoint: api.digitalOceanEndpoint || api.doEndpoint || DEFAULT.digitalOceanEndpoint,
+    bunnyStorageZone: api.bunnyStorageZone || "",
     bunnyAccessKey: api.bunnyAccessKey || "",
     bunnyCdnUrl: api.bunnyCdnUrl || "",
     // SEO

@@ -12,7 +12,7 @@ const PUBLIC_PATHS = [
 ];
 
 function isPublicPath(path: string) {
-  if (path === "/admin/login") return false;
+  if (path === "/admin/login" || path === "/admin-login" || path.startsWith("/admin")) return false;
   return PUBLIC_PATHS.some(p => path === p || path.startsWith(p + "/"));
 }
 

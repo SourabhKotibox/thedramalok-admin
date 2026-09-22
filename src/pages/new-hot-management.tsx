@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import {
   Flame, Sparkles, TrendingUp, Star, Search,
-  ChevronLeft, ChevronRight, Loader2, Film, CheckCircle2, XCircle,
+  ChevronLeft, ChevronRight, Loader2, Film, CheckCircle2, XCircle, Download,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -10,12 +10,13 @@ import {
 
 const PAGE_SIZE = 20;
 type Tab = "movies" | "tvshows" | "dramas";
-type FlagKey = "isNewContent" | "trending" | "featured";
+type FlagKey = "isNewContent" | "trending" | "featured" | "downloadAllowed";
 
 const FLAGS: { key: FlagKey; label: string; icon: typeof Sparkles }[] = [
-  { key: "isNewContent", label: "New", icon: Sparkles },
-  { key: "trending",     label: "Trending", icon: TrendingUp },
-  { key: "featured",     label: "Featured", icon: Star },
+  { key: "isNewContent",    label: "New",      icon: Sparkles },
+  { key: "trending",        label: "Trending", icon: TrendingUp },
+  { key: "featured",        label: "Featured", icon: Star },
+  { key: "downloadAllowed", label: "Download", icon: Download },
 ];
 
 const STATUS_STYLES: Record<string, string> = {
@@ -67,7 +68,9 @@ export default function NewHotManagement() {
   const getFlag = (item: any, field: FlagKey): boolean => {
     const id = item.id || item._id;
     const k = oKey(id, field);
-    return k in optimistic ? optimistic[k] : !!item[field];
+    if (k in optimistic) return optimistic[k];
+    if (field === "downloadAllowed") return item.downloadAllowed !== false;
+    return !!item[field];
   };
 
   const handleTabChange = (tab: Tab) => {
@@ -94,8 +97,10 @@ export default function NewHotManagement() {
       }
       const label = FLAGS.find((f) => f.key === field)?.label ?? field;
       toast({
-        title: newValue ? `Added to ${label}` : `Removed from ${label}`,
-        description: `"${item.title || item.name}" has been ${newValue ? "added to" : "removed from"} ${label}.`,
+        title: field === "downloadAllowed"
+          ? (newValue ? "Download Allowed" : "Download Disabled")
+          : (newValue ? `Added to ${label}` : `Removed from ${label}`),
+        description: `"${item.title || item.name}" download is now ${newValue ? "enabled" : "disabled"}.`,
       });
     } catch (err: any) {
       setOptimistic((prev) => ({ ...prev, [k]: !newValue }));
@@ -113,6 +118,7 @@ export default function NewHotManagement() {
   const newCount      = items.filter((i) => getFlag(i, "isNewContent")).length;
   const trendingCount = items.filter((i) => getFlag(i, "trending")).length;
   const featuredCount = items.filter((i) => getFlag(i, "featured")).length;
+  const downloadCount = items.filter((i) => getFlag(i, "downloadAllowed")).length;
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "movies",   label: "Movies" },
@@ -131,17 +137,18 @@ export default function NewHotManagement() {
           <div>
             <h1 className="text-xl font-black text-foreground tracking-tight">New &amp; Hot</h1>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Control which content appears as New, Trending or Featured
+              Control which content appears as New, Trending, Featured, or Downloadable
             </p>
           </div>
         </div>
 
         {!isLoading && items.length > 0 && (
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
             {[
               { label: "New", count: newCount, icon: Sparkles },
               { label: "Trending", count: trendingCount, icon: TrendingUp },
               { label: "Featured", count: featuredCount, icon: Star },
+              { label: "Download", count: downloadCount, icon: Download },
             ].map(({ label, count, icon: Icon }) => (
               <div key={label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/20">
                 <Icon className="h-3 w-3 text-primary" />

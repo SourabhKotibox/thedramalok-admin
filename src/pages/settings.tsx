@@ -209,17 +209,21 @@ export default function Settings() {
   const [lightLogoPreview, setLightLogoPreview] = useState<string>(ctxSettings.lightLogoUrl || "");
   const [darkLogoPreview, setDarkLogoPreview] = useState<string>(ctxSettings.darkLogoUrl || "");
   const [faviconPreview, setFaviconPreview] = useState<string>(ctxSettings.faviconUrl || "");
+  const [lightLogoSize, setLightLogoSize] = useState<number>(ctxSettings.lightLogoSize || 36);
+  const [darkLogoSize, setDarkLogoSize] = useState<number>(ctxSettings.darkLogoSize || 36);
 
   type LogoType = "lightLogo" | "darkLogo" | "favicon" | "splashVideo" | null;
   const [mediaPickerType, setMediaPickerType] = useState<LogoType>(null);
 
   useEffect(() => {
     setLightLogoPreview(ctxSettings.lightLogoUrl || "");
-  }, [ctxSettings.lightLogoUrl]);
+    setLightLogoSize(ctxSettings.lightLogoSize || 36);
+  }, [ctxSettings.lightLogoUrl, ctxSettings.lightLogoSize]);
 
   useEffect(() => {
     setDarkLogoPreview(ctxSettings.darkLogoUrl || "");
-  }, [ctxSettings.darkLogoUrl]);
+    setDarkLogoSize(ctxSettings.darkLogoSize || 36);
+  }, [ctxSettings.darkLogoUrl, ctxSettings.darkLogoSize]);
 
   useEffect(() => {
     setFaviconPreview(ctxSettings.faviconUrl || "");
@@ -244,8 +248,10 @@ export default function Settings() {
         lightLogoUrl: lightLogoPreview !== ctxSettings.lightLogoUrl ? lightLogoPreview : undefined,
         darkLogoUrl: darkLogoPreview !== ctxSettings.darkLogoUrl ? darkLogoPreview : undefined,
         faviconUrl: faviconPreview !== ctxSettings.faviconUrl ? faviconPreview : undefined,
+        lightLogoSize,
+        darkLogoSize,
       });
-      updateCtx({ ...business });
+      updateCtx({ ...business, lightLogoSize, darkLogoSize });
       await refreshSettings();
       toast({ title: "Business settings saved!" });
     } catch (err: any) {
@@ -556,29 +562,97 @@ export default function Settings() {
   };
 
   // ── Storage Settings ───────────────────────────────────────────────────
-   const [storage, setStorage] = useState({
-     localStorage: ctxSettings.storageDriver === 'local',
-   });
+  const [storage, setStorage] = useState({
+    provider: (ctxSettings.storageDriver === "s3"
+      ? "s3"
+      : ctxSettings.storageDriver === "digitalocean"
+      ? "digitalocean"
+      : "local") as "local" | "s3" | "digitalocean",
+    localStorage: ctxSettings.storageDriver === "local" || !ctxSettings.storageDriver,
+    // AWS S3
+    awsBucket: ctxSettings.awsBucket || "",
+    awsRegion: ctxSettings.awsRegion || "",
+    awsAccessKey: ctxSettings.awsAccessKeyId || ctxSettings.awsAccessKey || "",
+    awsSecretKey: ctxSettings.awsSecretAccessKey || ctxSettings.awsSecretKey || "",
+    // DigitalOcean Spaces
+    doSpaceName: ctxSettings.doSpaceName || ctxSettings.digitalOceanSpaceName || "",
+    doRegion: ctxSettings.doRegion || ctxSettings.digitalOceanRegion || "",
+    doAccessKey: ctxSettings.doAccessKey || ctxSettings.digitalOceanAccessKey || "",
+    doSecretKey: ctxSettings.doSecretKey || ctxSettings.digitalOceanSecretKey || "",
+    doEndpoint: ctxSettings.doEndpoint || ctxSettings.digitalOceanEndpoint || "",
+  });
 
-   useEffect(() => {
-     setStorage({
-       localStorage: ctxSettings.storageDriver === 'local',
-     });
-   }, [
-     ctxSettings.storageDriver,
-   ]);
+  useEffect(() => {
+    const rawDriver = ctxSettings.storageDriver as string;
+    const provider: "local" | "s3" | "digitalocean" =
+      rawDriver === "s3" ? "s3" : rawDriver === "digitalocean" ? "digitalocean" : "local";
 
-   const handleSaveStorage = async () => {
-     setSaving(true);
-     try {
-      const driver: 'local' | 'bunny' = storage.localStorage ? 'local' : 'bunny';
+    setStorage({
+      provider,
+      localStorage: rawDriver === "local" || !rawDriver,
+      awsBucket: ctxSettings.awsBucket || "",
+      awsRegion: ctxSettings.awsRegion || "",
+      awsAccessKey: ctxSettings.awsAccessKeyId || ctxSettings.awsAccessKey || "",
+      awsSecretKey: ctxSettings.awsSecretAccessKey || ctxSettings.awsSecretKey || "",
+      doSpaceName: ctxSettings.doSpaceName || ctxSettings.digitalOceanSpaceName || "",
+      doRegion: ctxSettings.doRegion || ctxSettings.digitalOceanRegion || "",
+      doAccessKey: ctxSettings.doAccessKey || ctxSettings.digitalOceanAccessKey || "",
+      doSecretKey: ctxSettings.doSecretKey || ctxSettings.digitalOceanSecretKey || "",
+      doEndpoint: ctxSettings.doEndpoint || ctxSettings.digitalOceanEndpoint || "",
+    });
+  }, [
+    ctxSettings.storageDriver,
+    ctxSettings.awsBucket,
+    ctxSettings.awsRegion,
+    ctxSettings.awsAccessKeyId,
+    ctxSettings.awsAccessKey,
+    ctxSettings.awsSecretAccessKey,
+    ctxSettings.awsSecretKey,
+    ctxSettings.doSpaceName,
+    ctxSettings.digitalOceanSpaceName,
+    ctxSettings.doRegion,
+    ctxSettings.digitalOceanRegion,
+    ctxSettings.doAccessKey,
+    ctxSettings.digitalOceanAccessKey,
+    ctxSettings.doSecretKey,
+    ctxSettings.digitalOceanSecretKey,
+    ctxSettings.doEndpoint,
+    ctxSettings.digitalOceanEndpoint,
+  ]);
 
-      await updateSettingsMutation.mutateAsync({
-        storageDriver: driver,
-      });
-      updateCtx({
-        storageDriver: driver,
-      });
+  const handleSaveStorage = async () => {
+    setSaving(true);
+    try {
+      const payload: Record<string, any> = {
+        storageDriver: storage.provider,
+      };
+
+      if (storage.provider === "local") {
+        payload.storageDriver = "local";
+      } else if (storage.provider === "s3") {
+        payload.storageDriver = "s3";
+        payload.awsBucket = storage.awsBucket.trim();
+        payload.awsRegion = storage.awsRegion.trim();
+        payload.awsAccessKeyId = storage.awsAccessKey.trim();
+        payload.awsSecretAccessKey = storage.awsSecretKey.trim();
+        payload.awsAccessKey = storage.awsAccessKey.trim();
+        payload.awsSecretKey = storage.awsSecretKey.trim();
+      } else if (storage.provider === "digitalocean") {
+        payload.storageDriver = "digitalocean";
+        payload.doSpaceName = storage.doSpaceName.trim();
+        payload.doRegion = storage.doRegion.trim();
+        payload.doAccessKey = storage.doAccessKey.trim();
+        payload.doSecretKey = storage.doSecretKey.trim();
+        payload.doEndpoint = storage.doEndpoint.trim();
+        payload.digitalOceanSpaceName = storage.doSpaceName.trim();
+        payload.digitalOceanRegion = storage.doRegion.trim();
+        payload.digitalOceanAccessKey = storage.doAccessKey.trim();
+        payload.digitalOceanSecretKey = storage.doSecretKey.trim();
+        payload.digitalOceanEndpoint = storage.doEndpoint.trim();
+      }
+
+      await updateSettingsMutation.mutateAsync(payload);
+      updateCtx(payload);
       await refreshSettings();
       toast({ title: "Storage settings saved!" });
     } catch (err: any) {
@@ -586,7 +660,7 @@ export default function Settings() {
     } finally {
       setSaving(false);
     }
-   };
+  };
 
   // ── SEO Settings ───────────────────────────────────────────────────────
   const [seo, setSeo] = useState({
@@ -693,20 +767,36 @@ export default function Settings() {
     label,
     preview,
     onClick,
+    size,
+    onSizeChange,
   }: {
     label: string;
     preview: string;
     onClick: () => void;
+    size?: number;
+    onSizeChange?: (val: number) => void;
   }) => (
-    <div className="space-y-2">
-      <Label className={labelCls}>{label}</Label>
+    <div className="space-y-3 p-3.5 rounded-xl border border-border bg-card/60">
+      <div className="flex items-center justify-between">
+        <Label className={labelCls}>{label}</Label>
+        {size !== undefined && (
+          <span className="text-xs font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
+            {size}px
+          </span>
+        )}
+      </div>
       <div
         className="relative flex flex-col items-center justify-center h-28 rounded-lg border-2 border-dashed border-border bg-muted/30 dark:bg-zinc-800/40 cursor-pointer hover:border-primary/60 transition-colors overflow-hidden"
         onClick={onClick}
       >
         {preview ? (
           <>
-            <img src={getImageUrl(preview)} alt={label} className="h-full w-full object-contain p-2" />
+            <img
+              src={getImageUrl(preview)}
+              alt={label}
+              className="w-auto object-contain p-2 transition-all duration-150"
+              style={{ maxHeight: size ? `${Math.min(size * 1.5, 96)}px` : "100%", height: size ? `${Math.min(size, 88)}px` : "auto" }}
+            />
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
               <Upload className="h-5 w-5 text-foreground" />
             </div>
@@ -718,6 +808,24 @@ export default function Settings() {
           </>
         )}
       </div>
+
+      {onSizeChange && size !== undefined && (
+        <div className="space-y-1.5 pt-1">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Logo Size</span>
+            <span>{size}px</span>
+          </div>
+          <input
+            type="range"
+            min={16}
+            max={100}
+            step={1}
+            value={size}
+            onChange={(e) => onSizeChange(Number(e.target.value))}
+            className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+          />
+        </div>
+      )}
     </div>
   );
 
@@ -732,11 +840,15 @@ export default function Settings() {
           <LogoUploadBox
             label="Light Theme Logo"
             preview={lightLogoPreview}
+            size={lightLogoSize}
+            onSizeChange={setLightLogoSize}
             onClick={() => setMediaPickerType("lightLogo")}
           />
           <LogoUploadBox
             label="Dark Theme Logo"
             preview={darkLogoPreview}
+            size={darkLogoSize}
+            onSizeChange={setDarkLogoSize}
             onClick={() => setMediaPickerType("darkLogo")}
           />
           <LogoUploadBox
@@ -1430,32 +1542,177 @@ export default function Settings() {
   const renderStorage = () => (
     <div>
       <SectionTitle icon={HardDrive} label="Storage Settings" />
-      <div className="space-y-0 mb-6 rounded-lg border border-border overflow-hidden">
-        {(
-          [
-            { key: "localStorage", label: "Local Storage" },
-          ] as const
-        ).map(({ key, label }, i, arr) => (
-          <div
-            key={key}
-            className={`flex items-center justify-between px-5 py-4 bg-card ${
-              i < arr.length - 1 ? "border-b border-border" : ""
-            }`}
-          >
-            <span className="text-foreground font-medium">{label}</span>
+
+      {/* Storage Provider Single-Select Control */}
+      <div className="space-y-3 mb-6">
+        <Label className={labelCls}>
+          Storage Provider <span className="text-primary">*</span>
+        </Label>
+        <div className="flex flex-wrap gap-3">
+          {[
+            { id: "local", label: "Local Storage" },
+            { id: "s3", label: "AWS S3" },
+            { id: "digitalocean", label: "DigitalOcean" },
+          ].map((provider) => (
+            <button
+              key={provider.id}
+              type="button"
+              onClick={() =>
+                setStorage((prev) => ({
+                  ...prev,
+                  provider: provider.id as "local" | "s3" | "digitalocean",
+                }))
+              }
+              className={`px-6 py-2.5 rounded-lg border text-sm font-medium transition-all ${
+                storage.provider === provider.id
+                  ? "bg-primary border-primary text-white shadow-sm"
+                  : "border-border text-foreground hover:border-primary hover:text-foreground bg-card"
+              }`}
+            >
+              {provider.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Provider Content */}
+      {storage.provider === "local" && (
+        <div className="space-y-0 mb-6 rounded-lg border border-border overflow-hidden animate-in fade-in duration-300">
+          <div className="flex items-center justify-between px-5 py-4 bg-card">
+            <div className="space-y-0.5">
+              <span className="text-foreground font-medium">Local Storage</span>
+              <p className="text-xs text-muted-foreground">Store uploaded media files directly on the local server filesystem</p>
+            </div>
             <Switch
-              checked={storage[key]}
+              checked={storage.localStorage}
               onCheckedChange={(v) => {
                 setStorage({
                   ...storage,
-                  localStorage: key === "localStorage" ? v : false,
+                  localStorage: v,
                 });
               }}
               className="data-[state=checked]:bg-primary"
             />
           </div>
-        ))}
-      </div>
+        </div>
+      )}
+
+      {storage.provider === "s3" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6 animate-in fade-in duration-300">
+          <div className="space-y-2">
+            <Label className={labelCls}>
+              Bucket Name <span className="text-primary">*</span>
+            </Label>
+            <Input
+              value={storage.awsBucket}
+              onChange={(e) => setStorage({ ...storage, awsBucket: e.target.value })}
+              placeholder="e.g. my-media-bucket"
+              className={inputCls}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className={labelCls}>
+              Region <span className="text-primary">*</span>
+            </Label>
+            <Input
+              value={storage.awsRegion}
+              onChange={(e) => setStorage({ ...storage, awsRegion: e.target.value })}
+              placeholder="e.g. us-east-1"
+              className={inputCls}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className={labelCls}>
+              Access Key <span className="text-primary">*</span>
+            </Label>
+            <Input
+              value={storage.awsAccessKey}
+              onChange={(e) => setStorage({ ...storage, awsAccessKey: e.target.value })}
+              placeholder="e.g. AKIAIOSFODNN7EXAMPLE"
+              className={inputCls}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className={labelCls}>
+              Secret Key <span className="text-primary">*</span>
+            </Label>
+            <SecretInput
+              value={storage.awsSecretKey}
+              onChange={(e) => setStorage({ ...storage, awsSecretKey: e.target.value })}
+              placeholder="Enter AWS Secret Key"
+              className={inputCls}
+            />
+          </div>
+        </div>
+      )}
+
+      {storage.provider === "digitalocean" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6 animate-in fade-in duration-300">
+          <div className="space-y-2">
+            <Label className={labelCls}>
+              Space Name <span className="text-primary">*</span>
+            </Label>
+            <Input
+              value={storage.doSpaceName}
+              onChange={(e) => setStorage({ ...storage, doSpaceName: e.target.value })}
+              placeholder="e.g. my-space"
+              className={inputCls}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className={labelCls}>
+              Region <span className="text-primary">*</span>
+            </Label>
+            <Input
+              value={storage.doRegion}
+              onChange={(e) => setStorage({ ...storage, doRegion: e.target.value })}
+              placeholder="e.g. nyc3"
+              className={inputCls}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className={labelCls}>
+              Access Key <span className="text-primary">*</span>
+            </Label>
+            <Input
+              value={storage.doAccessKey}
+              onChange={(e) => setStorage({ ...storage, doAccessKey: e.target.value })}
+              placeholder="e.g. DO00EXAMPLEKEY"
+              className={inputCls}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className={labelCls}>
+              Secret Key <span className="text-primary">*</span>
+            </Label>
+            <SecretInput
+              value={storage.doSecretKey}
+              onChange={(e) => setStorage({ ...storage, doSecretKey: e.target.value })}
+              placeholder="Enter DigitalOcean Secret Key"
+              className={inputCls}
+            />
+          </div>
+
+          <div className="space-y-2 md:col-span-2">
+            <Label className={labelCls}>
+              Endpoint <span className="text-primary">*</span>
+            </Label>
+            <Input
+              value={storage.doEndpoint}
+              onChange={(e) => setStorage({ ...storage, doEndpoint: e.target.value })}
+              placeholder="e.g. https://nyc3.digitaloceanspaces.com"
+              className={inputCls}
+            />
+          </div>
+        </div>
+      )}
+
       <SaveBtn saving={saving} onClick={handleSaveStorage} />
     </div>
   );

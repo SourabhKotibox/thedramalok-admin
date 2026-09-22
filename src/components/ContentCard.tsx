@@ -2,8 +2,17 @@ import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
-import { Play, Star, Crown, Tv, Plus } from "lucide-react";
-import { getImageUrl } from "@/lib/api-client";
+import { Play, Star, Crown, Tv, Plus, Download, Check, Loader2 } from "lucide-react";
+import { 
+  getImageUrl, 
+  useRequestDownload, 
+  useRemoveDownload, 
+  useGetDownloads, 
+  cacheDownloadedVideo, 
+  removeOfflineVideo 
+} from "@/lib/api-client";
+import { useDownloadPermission } from "@/hooks/useDownloadPermission";
+import { useToast } from "@/hooks/use-toast";
 
 
 function cleanText(str?: string) {
@@ -98,6 +107,17 @@ export function PortraitCard({
   fullWidth?: boolean;
   aspectRatio?: "2/3" | "9/16";
 }) {
+  const { toast } = useToast();
+  const { canDownload, user } = useDownloadPermission();
+  const requestDownloadMutation = useRequestDownload();
+  const removeDownloadMutation = useRemoveDownload();
+  const { data: downloadsData } = useGetDownloads({ limit: 200 });
+  const userDownloads: any[] = Array.isArray(downloadsData) ? downloadsData : [];
+
+  const itemId = item.id || item._id;
+  const isDownloaded = userDownloads.some((d: any) => d.contentId === itemId || d.id === itemId);
+  const [downloading, setDownloading] = useState(false);
+
   const imgSrc = getImageUrl(item.poster || item.posterImage || item.thumbnail) || "";
   const isShow = item.type === "show" || item.type === "series" || item.contentType === "series" || item.contentType === "show";
   const year = item.year || item.releaseYear || "";
@@ -130,6 +150,57 @@ export function PortraitCard({
       return () => window.removeEventListener('scroll', updateRect, { capture: true });
     }
   }, [isHovered]);
+
+  const handleDownloadClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) {
+      toast({ title: "Please sign in to download", variant: "destructive" });
+      return;
+    }
+
+    if (isDownloaded) {
+      const record = userDownloads.find((d: any) => d.contentId === itemId || d.id === itemId);
+      try {
+        await removeDownloadMutation.mutateAsync({ id: record?.id || record?._id, contentId: itemId });
+        await removeOfflineVideo(itemId);
+        toast({ title: "Removed from downloads" });
+      } catch {
+        toast({ title: "Failed to remove download", variant: "destructive" });
+      }
+      return;
+    }
+
+    setDownloading(true);
+    const contentType = (item.contentType === "drama" ? "drama" : item.type === "show" || item.contentType === "series" ? "series" : "movie") as "movie" | "drama" | "series";
+
+    try {
+      toast({ title: "Downloading started...", description: `${cleanText(item.title)} is downloading for offline viewing.` });
+      const res: any = await requestDownloadMutation.mutateAsync({ contentId: itemId, contentType });
+      const downloadUrl = res?.data?.downloadUrl || res?.downloadUrl || item?.videoUrl || item?.hlsUrl;
+      if (downloadUrl) {
+        const ok = await cacheDownloadedVideo(downloadUrl, itemId);
+        toast({ title: ok ? "Download complete — available offline" : "Added to downloads" });
+      } else {
+        toast({ title: "Added to downloads" });
+      }
+    } catch (err: any) {
+      const fallbackUrl = item?.videoUrl || item?.hlsUrl;
+      if (fallbackUrl && item?.downloadAllowed !== false) {
+        const ok = await cacheDownloadedVideo(fallbackUrl, itemId);
+        toast({ title: ok ? "Download complete — available offline" : "Added to downloads" });
+      } else {
+        toast({ 
+          title: "Download failed", 
+          description: err?.message || "Could not download content.", 
+          variant: "destructive" 
+        });
+      }
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const showDownloadBtn = canDownload && item?.downloadAllowed !== false;
 
   return (
     <div
@@ -195,6 +266,26 @@ export function PortraitCard({
                     <button className="flex-1 flex items-center justify-center gap-2 py-2 bg-white hover:bg-zinc-200 text-black font-bold rounded-md text-[10px] sm:text-[11px] transition-colors" onClick={(e) => { e.stopPropagation(); onClick(); }}>
                       <Play className="w-3 h-3 fill-black" /> Watch Now
                     </button>
+                    {showDownloadBtn && (
+                      <button 
+                        className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors border ${
+                          isDownloaded 
+                            ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/30" 
+                            : "bg-white/10 text-white rounded-md hover:bg-white/20 border-white/10"
+                        }`} 
+                        onClick={handleDownloadClick}
+                        disabled={downloading}
+                        title={isDownloaded ? "Downloaded (Click to remove)" : "Download offline"}
+                      >
+                        {downloading ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : isDownloaded ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        ) : (
+                          <Download className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    )}
                     <button className="w-8 h-8 flex items-center justify-center bg-white/10 text-white rounded-md hover:bg-white/20 transition-colors border border-white/10" onClick={(e) => e.stopPropagation()}>
                       <Plus className="w-4 h-4" />
                     </button>

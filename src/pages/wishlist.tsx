@@ -65,7 +65,7 @@ export default function WishlistPage() {
             </button>
             <div className="flex items-center gap-2">
               <Bookmark className="w-5 h-5 text-primary" />
-              <h1 className="text-foreground font-black text-2xl tracking-tight">My Wishlist</h1>
+              <h1 className="text-foreground font-black text-2xl tracking-tight">Watchlist</h1>
             </div>
           </div>
           {wishlistItems.length > 0 && (

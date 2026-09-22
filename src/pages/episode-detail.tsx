@@ -10,6 +10,7 @@ import PublicLayout from "@/components/PublicLayout";
 import { WebsiteReviews } from "@/components/WebsiteReviews";
 import Hls from "hls.js";
 import { useGetWebSubscriptionPlans, useCreateSubscription, useGetWebDetail, getImageUrl, useGetPublicAds, useGetAppProfile, useToggleLike, useRequestDownload, useRemoveDownload, useGetWishlist, useToggleWishlist, useSaveWatchProgress, useGetWatchProgress, getOfflineVideoUrl, useGetDownloads, cacheDownloadedVideo, removeOfflineVideo, useRecordView, useRecordShare } from "@/lib/api-client";
+import { useDownloadPermission } from "@/hooks/useDownloadPermission";
 import { PlayerPrerollAd } from "@/components/AdComponents";
 import { useToast } from "@/hooks/use-toast";
 import { PortraitCard } from "@/components/ContentCard";
@@ -1178,6 +1179,7 @@ export default function EpisodeDetailPage() {
 
   const { data: profileData } = useGetAppProfile();
   const { toast } = useToast();
+  const { canDownload } = useDownloadPermission();
 
   const { data: wishlistData } = useGetWishlist({ limit: 100 });
   const wishlistItems: any[] = wishlistData?.items || [];
@@ -1216,6 +1218,7 @@ export default function EpisodeDetailPage() {
           { onSuccess: async () => { await removeOfflineVideo(contentId); toast({ title: "Removed from downloads" }); } }
         );
       } else {
+        toast({ title: "Downloading started...", description: `${showData?.title || 'Video'} is being downloaded.` });
         const contentType = showData?.contentType === 'drama' ? 'drama' : showData?.contentType === 'series' ? 'series' : 'movie';
         requestDownloadMutation.mutate(
           { contentId, contentType },
@@ -1517,22 +1520,24 @@ export default function EpisodeDetailPage() {
                 </button>
 
                 {/* Download Button */}
-                <button
-                  onClick={() => handleDownloadToggle(currentEp)}
-                  disabled={requestDownloadMutation.isPending || removeDownloadMutation.isPending}
-                  className="flex flex-col items-center gap-1 px-4 py-2 text-foreground/80 hover:text-foreground transition-all active:scale-95 disabled:opacity-70"
-                >
-                  {requestDownloadMutation.isPending || removeDownloadMutation.isPending ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : isDownloaded ? (
-                    <Check className="w-5 h-5 text-emerald-400" strokeWidth={3} />
-                  ) : (
-                    <Download className="w-5 h-5" />
-                  )}
-                  <span className="text-[11px] font-semibold mt-0.5">
-                    {isDownloaded ? "Downloaded" : "Download"}
-                  </span>
-                </button>
+                {canDownload && showData?.downloadAllowed !== false && (
+                  <button
+                    onClick={() => handleDownloadToggle(currentEp)}
+                    disabled={requestDownloadMutation.isPending || removeDownloadMutation.isPending}
+                    className="flex flex-col items-center gap-1 px-4 py-2 text-foreground/80 hover:text-foreground transition-all active:scale-95 disabled:opacity-70"
+                  >
+                    {requestDownloadMutation.isPending || removeDownloadMutation.isPending ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : isDownloaded ? (
+                      <Check className="w-5 h-5 text-emerald-400" strokeWidth={3} />
+                    ) : (
+                      <Download className="w-5 h-5" />
+                    )}
+                    <span className="text-[11px] font-semibold mt-0.5">
+                      {isDownloaded ? "Downloaded" : "Download"}
+                    </span>
+                  </button>
+                )}
               </div>
 
               {/* Cast & Crew Section */}
@@ -1659,7 +1664,7 @@ export default function EpisodeDetailPage() {
                                 >
                                   {ep.episode || ep.episodeNumber || ep.number}. {ep.title}
                                 </h4>
-                                {!isLocked && (
+                                {canDownload && showData?.downloadAllowed !== false && ep?.downloadAllowed !== false && !isLocked && (
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();

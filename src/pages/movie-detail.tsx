@@ -7,6 +7,7 @@ import {
   Check, ChevronRight, Loader2, Download
 } from "lucide-react";
 import { useGetWebDetail, getImageUrl, useGetWishlist, useToggleWishlist, useGetAppProfile, useToggleLike, useRequestDownload, useRemoveDownload, useGetDownloads, cacheDownloadedVideo, removeOfflineVideo, useRecordShare } from "@/lib/api-client";
+import { useDownloadPermission } from "@/hooks/useDownloadPermission";
 import { useToast } from "@/hooks/use-toast";
 import PublicLayout from "@/components/PublicLayout";
 import SubscriptionPlansModal from "@/components/SubscriptionPlansModal";
@@ -20,6 +21,7 @@ export default function MovieDetailPage() {
   const [, setLocation] = useLocation();
   const id = (params as any)?.id;
   const { toast } = useToast();
+  const { canDownload } = useDownloadPermission();
 
   const recordShareMutation = useRecordShare();
 
@@ -140,11 +142,17 @@ export default function MovieDetailPage() {
         <div className="absolute inset-0 bg-gradient-to-r from-[#0c0c14]/90 via-[#0c0c14]/30 to-transparent" />
 
         {/* Back button */}
-        <div className="absolute top-0 left-0 right-0 z-10" style={{ paddingTop: "72px" }}>
+        <div className="absolute top-0 left-0 right-0 z-30 pointer-events-auto" style={{ paddingTop: "72px" }}>
           <div className="px-6 sm:px-10 lg:px-16">
             <button
-              onClick={() => window.history.back()}
-              className="flex items-center gap-1.5 text-foreground/80 hover:text-foreground text-sm font-semibold transition-colors"
+              onClick={() => {
+                if (window.history.length > 1) {
+                  window.history.back();
+                } else {
+                  setLocation("/movies-browse");
+                }
+              }}
+              className="flex items-center gap-1.5 text-white/90 hover:text-white text-sm font-semibold transition-colors cursor-pointer bg-black/50 hover:bg-black/80 px-3.5 py-2 rounded-xl backdrop-blur-md w-fit border border-white/10 active:scale-95 shadow-lg"
             >
               <ChevronLeft className="w-4 h-4" /> Back
             </button>
@@ -293,61 +301,74 @@ export default function MovieDetailPage() {
           </button>
 
           {/* Download button for movie */}
-          <button
-            onClick={async () => {
-              if (!user) { setLocation("/login"); return; }
-              if (isDownloaded) {
-                removeDownloadMutation.mutate(
-                  { id: downloadRecord.id, contentId: id!, episodeId: undefined },
-                  {
-                    onSuccess: async () => {
-                      await removeOfflineVideo(id!);
-                      toast({ title: "Removed from downloads" });
-                    },
-                    onError: () => toast({ title: "Failed to remove", variant: "destructive" }),
-                  }
-                );
-              } else {
-                const contentType = (item.contentType === 'drama' ? 'drama' : item.contentType === 'series' ? 'series' : 'movie') as 'movie' | 'drama' | 'series';
-                requestDownloadMutation.mutate(
-                  { contentId: id!, contentType },
-                  {
-                    onSuccess: async (data: any) => {
-                      const downloadUrl = data?.data?.downloadUrl || data?.downloadUrl;
-                      if (downloadUrl) {
-                        setDlProgress(0);
-                        const ok = await cacheDownloadedVideo(downloadUrl, id!, undefined, setDlProgress);
-                        setDlProgress(null);
-                        toast({ title: ok ? "Downloaded — available offline" : "Saved to downloads (online only)" });
-                      } else {
-                        toast({ title: "Added to downloads" });
-                      }
-                    },
-                    onError: (err: any) => toast({ title: "Download failed", description: err?.message || "Please try again.", variant: "destructive" }),
-                  }
-                );
-              }
-            }}
-            disabled={requestDownloadMutation.isPending || removeDownloadMutation.isPending || dlProgress !== null}
-            className={`flex items-center gap-2 px-5 py-3.5 rounded-xl text-sm font-bold border-2 transition-all active:scale-95 disabled:opacity-70 ${
-              isDownloaded
-                ? "bg-emerald-500/20 border-emerald-500 text-emerald-400"
-                : "bg-white/8 border-white/20 text-foreground hover:bg-white/12 hover:border-white/35"
-            }`}
-          >
-            {requestDownloadMutation.isPending || dlProgress !== null ? (
-              dlProgress !== null && dlProgress > 0
-                ? <span className="text-xs font-bold">{dlProgress}%</span>
-                : <Loader2 className="w-4 h-4 animate-spin" />
-            ) : removeDownloadMutation.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : isDownloaded ? (
-              <Check className="w-4 h-4" />
-            ) : (
-              <Download className="w-4 h-4" />
-            )}
-            {dlProgress !== null ? "Downloading..." : isDownloaded ? "Downloaded" : "Download"}
-          </button>
+          {canDownload && item?.downloadAllowed !== false && (
+            <button
+              onClick={async () => {
+                if (!user) { setLocation("/login"); return; }
+                if (isDownloaded) {
+                  removeDownloadMutation.mutate(
+                    { id: downloadRecord.id, contentId: id!, episodeId: undefined },
+                    {
+                      onSuccess: async () => {
+                        await removeOfflineVideo(id!);
+                        toast({ title: "Removed from downloads" });
+                      },
+                      onError: () => toast({ title: "Failed to remove", variant: "destructive" }),
+                    }
+                  );
+                } else {
+                  toast({ title: "Downloading started...", description: `${item.title} is being downloaded for offline viewing.` });
+                  const contentType = (item.contentType === 'drama' ? 'drama' : item.contentType === 'series' ? 'series' : 'movie') as 'movie' | 'drama' | 'series';
+                  requestDownloadMutation.mutate(
+                    { contentId: id!, contentType },
+                    {
+                      onSuccess: async (data: any) => {
+                        const downloadUrl = data?.data?.downloadUrl || data?.downloadUrl || item?.videoUrl || item?.hlsUrl;
+                        if (downloadUrl) {
+                          setDlProgress(0);
+                          const ok = await cacheDownloadedVideo(downloadUrl, id!, undefined, setDlProgress);
+                          setDlProgress(null);
+                          toast({ title: ok ? "Download complete — available offline" : "Added to downloads" });
+                        } else {
+                          toast({ title: "Added to downloads" });
+                        }
+                      },
+                      onError: async (err: any) => {
+                        const fallbackUrl = item?.videoUrl || item?.hlsUrl;
+                        if (fallbackUrl && item?.downloadAllowed !== false) {
+                          setDlProgress(0);
+                          const ok = await cacheDownloadedVideo(fallbackUrl, id!, undefined, setDlProgress);
+                          setDlProgress(null);
+                          toast({ title: ok ? "Download complete — available offline" : "Added to downloads" });
+                          return;
+                        }
+                        toast({ title: "Download failed", description: err?.message || "Please try again.", variant: "destructive" });
+                      },
+                    }
+                  );
+                }
+              }}
+              disabled={requestDownloadMutation.isPending || removeDownloadMutation.isPending || dlProgress !== null}
+              className={`flex items-center gap-2 px-5 py-3.5 rounded-xl text-sm font-bold border-2 transition-all active:scale-95 disabled:opacity-70 ${
+                isDownloaded
+                  ? "bg-emerald-500/20 border-emerald-500 text-emerald-400"
+                  : "bg-white/8 border-white/20 text-foreground hover:bg-white/12 hover:border-white/35"
+              }`}
+            >
+              {requestDownloadMutation.isPending || dlProgress !== null ? (
+                dlProgress !== null && dlProgress > 0
+                  ? <span className="text-xs font-bold">{dlProgress}%</span>
+                  : <Loader2 className="w-4 h-4 animate-spin" />
+              ) : removeDownloadMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : isDownloaded ? (
+                <Check className="w-4 h-4" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              {dlProgress !== null ? "Downloading..." : isDownloaded ? "Downloaded" : "Download"}
+            </button>
+          )}
 
           {/* Like button */}
           <button

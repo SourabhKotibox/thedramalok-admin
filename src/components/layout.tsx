@@ -400,13 +400,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 
   const LogoComponent = ({ collapsed = false }: { collapsed?: boolean }) => {
+    const logoSize = resolvedTheme === "dark"
+      ? (settings.darkLogoSize || 36)
+      : (settings.lightLogoSize || 36);
+
     return (
       <div className="flex items-center justify-center gap-3">
         {getLogoUrl() ? (
           <img
             src={getLogoUrl()}
             alt="Logo"
-            className="h-9 w-auto object-contain"
+            className="w-auto object-contain transition-all"
+            style={{ height: `${collapsed ? Math.min(logoSize, 32) : logoSize}px`, maxHeight: "48px" }}
           />
         ) : (
           <Film className={`text-primary ${collapsed ? "h-7 w-7" : "h-9 w-9"}`} />

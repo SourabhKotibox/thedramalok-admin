@@ -2295,6 +2295,8 @@ export const useCreateSubscriptionPlan = () => {
     mutationFn: createSubscriptionPlan,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subscriptionPlans'] });
+      queryClient.invalidateQueries({ queryKey: ['webSubscriptionPlans'] });
+      queryClient.invalidateQueries({ queryKey: ['app-profile'] });
     }
   });
 };
@@ -2305,6 +2307,8 @@ export const useUpdateSubscriptionPlan = () => {
     mutationFn: ({ id, data }: any) => updateSubscriptionPlan(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subscriptionPlans'] });
+      queryClient.invalidateQueries({ queryKey: ['webSubscriptionPlans'] });
+      queryClient.invalidateQueries({ queryKey: ['app-profile'] });
     }
   });
 };
@@ -2315,6 +2319,8 @@ export const useDeleteSubscriptionPlan = () => {
     mutationFn: deleteSubscriptionPlan,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subscriptionPlans'] });
+      queryClient.invalidateQueries({ queryKey: ['webSubscriptionPlans'] });
+      queryClient.invalidateQueries({ queryKey: ['app-profile'] });
     }
   });
 };
@@ -2606,6 +2612,31 @@ export const toggleStoryTrending = async (id: string) => {
   return api(`/stories/${id}/trending`, { method: 'PATCH' });
 };
 
+export const getPublicStories = async (options?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  plan?: string;
+  featured?: string;
+  trending?: string;
+  category?: string;
+}) => {
+  const params = new URLSearchParams();
+  if (options?.page) params.append('page', options.page.toString());
+  if (options?.limit) params.append('limit', options.limit.toString());
+  if (options?.search) params.append('search', options.search);
+  if (options?.plan) params.append('plan', options.plan);
+  if (options?.featured) params.append('featured', options.featured);
+  if (options?.trending) params.append('trending', options.trending);
+  if (options?.category) params.append('category', options.category);
+
+  return api(`/stories/public?${params.toString()}`);
+};
+
+export const getPublicStoryById = async (id: string) => {
+  return api(`/stories/public/${id}`);
+};
+
 export const useGetStories = (options?: {
   page?: number;
   limit?: number;
@@ -2628,6 +2659,29 @@ export const useGetStoryById = (id: string) => {
   return useQuery({
     queryKey: ['story', id],
     queryFn: () => getStoryById(id),
+    enabled: !!id,
+  });
+};
+
+export const useGetPublicStories = (options?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  plan?: string;
+  featured?: string;
+  trending?: string;
+  category?: string;
+}) => {
+  return useQuery({
+    queryKey: ['public-stories', options],
+    queryFn: () => getPublicStories(options),
+  });
+};
+
+export const useGetPublicStoryById = (id: string) => {
+  return useQuery({
+    queryKey: ['public-story', id],
+    queryFn: () => getPublicStoryById(id),
     enabled: !!id,
   });
 };
@@ -2903,6 +2957,8 @@ export const useCreatePlanLimit = () => {
     mutationFn: createPlanLimit,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['planLimits'] });
+      queryClient.invalidateQueries({ queryKey: ['webSubscriptionPlans'] });
+      queryClient.invalidateQueries({ queryKey: ['app-profile'] });
     }
   });
 };
@@ -2913,6 +2969,8 @@ export const useUpdatePlanLimit = () => {
     mutationFn: ({ id, data }: any) => updatePlanLimit(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['planLimits'] });
+      queryClient.invalidateQueries({ queryKey: ['webSubscriptionPlans'] });
+      queryClient.invalidateQueries({ queryKey: ['app-profile'] });
     }
   });
 };
@@ -2923,6 +2981,8 @@ export const useDeletePlanLimit = () => {
     mutationFn: deletePlanLimit,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['planLimits'] });
+      queryClient.invalidateQueries({ queryKey: ['webSubscriptionPlans'] });
+      queryClient.invalidateQueries({ queryKey: ['app-profile'] });
     }
   });
 };
@@ -2933,6 +2993,8 @@ export const useBulkDeletePlanLimits = () => {
     mutationFn: bulkDeletePlanLimits,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['planLimits'] });
+      queryClient.invalidateQueries({ queryKey: ['webSubscriptionPlans'] });
+      queryClient.invalidateQueries({ queryKey: ['app-profile'] });
     }
   });
 };
@@ -3732,8 +3794,8 @@ export const getWishlist = async (options?: { page?: number; limit?: number }) =
   return api(`/app/wishlist?${params.toString()}`);
 };
 
-export const toggleWishlistItem = async (data: { contentId: string; contentType: 'movie' | 'show' | 'drama' }) => {
-  const type = data.contentType === 'movie' ? 'movie' : 'show';
+export const toggleWishlistItem = async (data: { contentId: string; contentType: 'movie' | 'show' | 'drama' | 'story' }) => {
+  const type = data.contentType === 'movie' ? 'movie' : data.contentType === 'story' ? 'story' : 'show';
   return api('/app/wishlist', {
     method: 'POST',
     body: JSON.stringify({ contentId: data.contentId, type, profileId: getActiveProfileId() || undefined }),

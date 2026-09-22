@@ -22,10 +22,10 @@ import {
 const NAV_ITEMS = [
   { icon: Home, label: 'Home', href: '/' },
   { icon: Search, label: 'Search', href: '/browse' },
-  { icon: Smartphone, label: 'Short Drama', href: '/short-dramas' },
-  { icon: Film, label: 'Movies', href: '/movies' },
+  { icon: Smartphone, label: 'Short Drama', href: '/short-dramas-browse' },
+  { icon: Film, label: 'Movies', href: '/movies-browse' },
   { icon: Tv, label: 'TV Shows', href: '/tv-shows-browse' },
-  { icon: Flame, label: 'New & Hot', href: '/new-hot' },
+  { icon: Flame, label: 'New & Hot', href: '/new-hot-browse' },
   { icon: Mic, label: 'Stories', href: '/stories' },
   { icon: User, label: 'My Space', href: '/account' },
 ];
@@ -43,6 +43,10 @@ export function PublicSidebar() {
   };
   const logoUrl = getLogoUrl();
   
+  const logoSize = resolvedTheme === "dark"
+    ? (settings.darkLogoSize || 32)
+    : (settings.lightLogoSize || 32);
+
   const user = (() => { try { return JSON.parse(localStorage.getItem("appUser") || "null"); } catch { return null; } })();
   
   return (
@@ -56,7 +60,12 @@ export function PublicSidebar() {
       <div className="flex flex-col items-center pt-8 mb-4 relative">
         <Link href="/" className="w-[80px] h-12 mb-2 flex items-center justify-center text-white transition-transform hover:scale-110">
           {logoUrl ? (
-            <img src={logoUrl} alt={settings.platformName || "The Drama Lock"} className="h-8 w-auto object-contain" />
+            <img
+              src={logoUrl}
+              alt={settings.platformName || "The Drama Lock"}
+              className="w-auto object-contain transition-all"
+              style={{ height: `${Math.min(logoSize, 44)}px`, maxHeight: "44px" }}
+            />
           ) : (
             <div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center shadow-lg shadow-red-600/50">
               <Play className="w-4 h-4 text-white fill-white ml-0.5" />

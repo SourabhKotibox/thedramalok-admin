@@ -31,6 +31,10 @@ export function PublicFooter() {
     { label: "Instagram", d: "M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37zM17.5 6.5h.01M7.5 2h9A5.5 5.5 0 0 1 2 7.5v9a5.5 5.5 0 0 1-5.5 5.5h-9A5.5 5.5 0 0 1 2 16.5v-9A5.5 5.5 0 0 1 7.5 2z", url: settings.instagramUrl },
   ].filter(link => link.url && link.url.trim() !== "");
 
+  const logoSize = resolvedTheme === "dark"
+    ? (settings.darkLogoSize || 36)
+    : (settings.lightLogoSize || 36);
+
   return (
     <footer className="bg-[#040407] border-t border-zinc-900 mt-20 pt-16 pb-10">
       <div className="px-6 sm:px-10 lg:px-14 max-w-7xl mx-auto">
@@ -38,7 +42,12 @@ export function PublicFooter() {
           <div className="space-y-4">
             <div className="flex items-center gap-2.5">
               {logoUrl ? (
-                <img src={logoUrl} alt={settings.platformName || "StreamIT"} className="h-9 w-auto object-contain" />
+                <img
+                  src={logoUrl}
+                  alt={settings.platformName || "StreamIT"}
+                  className="w-auto object-contain transition-all"
+                  style={{ height: `${logoSize}px`, maxHeight: "64px" }}
+                />
               ) : (
                 <>
                   <div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center shadow-lg shadow-red-600/40">
@@ -102,13 +111,13 @@ export function PublicFooter() {
           </div>
         </div>
 
-        <div className="pt-8 border-t border-zinc-900 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-zinc-500 text-xs text-center sm:text-left">
-            &copy; {new Date().getFullYear()} {settings.platformName || "StreamIT"}. All rights reserved.
+        <div className="pt-8 border-t border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-zinc-300 text-xs font-medium text-center sm:text-left">
+            {settings.copyrightText || `© ${new Date().getFullYear()} ${settings.platformName || "StreamIT"}. All rights reserved.`}
           </p>
           <div className="flex items-center gap-6">
-            <button onClick={() => setLocation("/page/privacy-policy")} className="text-zinc-500 hover:text-white text-xs transition-colors">Privacy Policy</button>
-            <button onClick={() => setLocation("/page/terms-of-service")} className="text-zinc-500 hover:text-white text-xs transition-colors">Terms of Service</button>
+            <button onClick={() => setLocation("/page/privacy-policy")} className="text-zinc-300 hover:text-white text-xs font-medium transition-colors">Privacy Policy</button>
+            <button onClick={() => setLocation("/page/terms-of-service")} className="text-zinc-300 hover:text-white text-xs font-medium transition-colors">Terms of Service</button>
           </div>
         </div>
       </div>

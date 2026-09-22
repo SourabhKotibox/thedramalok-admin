@@ -4,7 +4,8 @@ import {
   useGetUserById, 
   useUpdateUser, 
   useBanUser,
-  useUnbanUser
+  useUnbanUser,
+  useGetSubscriptionPlans
 } from "../lib/api-client";
 import { Input } from "@/components/ui/input";
 import { useQueryClient } from "@tanstack/react-query";
@@ -46,6 +47,7 @@ export default function UserDetail() {
   const queryClient = useQueryClient();
 
   const { data: user, isLoading } = useGetUserById(id);
+  const { data: plansData } = useGetSubscriptionPlans({ limit: 100 });
 
   const updateMutation = useUpdateUser();
   const banMutation = useBanUser();
@@ -53,6 +55,68 @@ export default function UserDetail() {
 
   const [isBanDialogOpen, setIsBanDialogOpen] = useState(false);
   const [banReason, setBanReason] = useState("");
+
+  const allPlans: any[] = plansData?.data || [];
+
+  const getPlanOption = (key: string, defaultName: string, level?: number) => {
+    const matchedPlan = allPlans.find((p: any) => {
+      const pName = (p.name || "").toLowerCase();
+      const k = key.toLowerCase();
+      if (level !== undefined && p.level === level) return true;
+      if (pName === k || pName.includes(k) || (p.id && p.id === key)) return true;
+      return false;
+    });
+
+    const isInactive = matchedPlan ? matchedPlan.status === false : false;
+    const isCurrentPlan =
+      (user?.subscriptionPlan || "free").toLowerCase() === key.toLowerCase() ||
+      (matchedPlan && (user?.subscriptionPlan || "").toLowerCase() === (matchedPlan.name || "").toLowerCase());
+
+    let statusText = "";
+    if (isInactive) {
+      statusText = isCurrentPlan ? "Inactive - Current" : "Inactive";
+    }
+
+    return {
+      value: key,
+      name: defaultName,
+      statusText,
+      isInactive,
+    };
+  };
+
+  const planOptions: Array<{ value: string; name: string; statusText: string; isInactive: boolean }> = [
+    getPlanOption("free", "Free"),
+    getPlanOption("basic", "Basic", 1),
+    getPlanOption("standard", "Standard", 2),
+    getPlanOption("premium", "Premium", 3),
+  ];
+
+  allPlans.forEach((p: any) => {
+    const pName = (p.name || "").toLowerCase();
+    const alreadyIncluded = planOptions.some(
+      (opt) =>
+        opt.value.toLowerCase() === pName ||
+        (p.id && opt.value === p.id) ||
+        (p.level && [1, 2, 3].includes(p.level) && ["basic", "standard", "premium"].includes(opt.value))
+    );
+    if (!alreadyIncluded) {
+      const isInactive = p.status === false;
+      const isCurrentPlan =
+        (user?.subscriptionPlan || "").toLowerCase() === pName ||
+        (user?.subscriptionPlan || "") === p.id;
+      let statusText = "";
+      if (isInactive) {
+        statusText = isCurrentPlan ? "Inactive - Current" : "Inactive";
+      }
+      planOptions.push({
+        value: p.name.toLowerCase(),
+        name: p.name,
+        statusText,
+        isInactive,
+      });
+    }
+  });
 
   const [formData, setFormData] = useState({
     name: "",
@@ -88,6 +152,18 @@ export default function UserDetail() {
 
   const handleUpdate = (e: React.FormEvent) => {
     e.preventDefault();
+    const selectedPlanKey = (formData.subscriptionPlan || "free").toLowerCase();
+    let matchedPlanId: string | null = null;
+    if (selectedPlanKey !== "free") {
+      const levelMap: Record<string, number> = { basic: 1, standard: 2, premium: 3 };
+      const matched = allPlans.find((p: any) => {
+        if (levelMap[selectedPlanKey] !== undefined && p.level === levelMap[selectedPlanKey]) return true;
+        const pName = (p.name || "").toLowerCase();
+        return pName === selectedPlanKey || pName.includes(selectedPlanKey) || (p.id || p._id) === formData.subscriptionPlan;
+      });
+      if (matched) matchedPlanId = matched.id || matched._id;
+    }
+
     updateMutation.mutate({
       id,
       data: {
@@ -95,6 +171,7 @@ export default function UserDetail() {
         email: formData.email,
         phone: formData.phone,
         subscriptionPlan: formData.subscriptionPlan,
+        subscriptionPlanId: matchedPlanId,
         subscriptionStatus: formData.subscriptionStatus,
         status: formData.status,
         banReason: formData.status !== "active" ? formData.banReason : ""
@@ -103,6 +180,7 @@ export default function UserDetail() {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ["user", id] });
         queryClient.invalidateQueries({ queryKey: ["users-list"] });
+        queryClient.invalidateQueries({ queryKey: ["app-profile"] });
         toast({ title: "User updated successfully" });
       },
       onError: () => {
@@ -294,10 +372,18 @@ export default function UserDetail() {
                           <SelectValue placeholder="Select plan" />
                         </SelectTrigger>
                         <SelectContent className="bg-muted border-border text-foreground">
-                          <SelectItem value="free">Free</SelectItem>
-                          <SelectItem value="basic">Basic</SelectItem>
-                          <SelectItem value="standard">Standard</SelectItem>
-                          <SelectItem value="premium">Premium</SelectItem>
+                          {planOptions.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              <span className="flex items-center gap-1.5">
+                                <span className="text-foreground">{opt.name}</span>
+                                {opt.statusText && (
+                                  <span className="text-xs font-normal text-muted-foreground/75">
+                                    ({opt.statusText})
+                                  </span>
+                                )}
+                              </span>
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>

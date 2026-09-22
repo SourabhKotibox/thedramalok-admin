@@ -479,7 +479,7 @@ export default function UserProfilePage() {
 
   const TABS: { id: any; label: string; icon: React.ReactNode; count?: number; href?: string }[] = [
     { id: "overview", label: "Overview", icon: <User className="w-4 h-4" /> },
-    { id: "watchlist", label: "My List", icon: <Bookmark className="w-4 h-4" />, count: wishlistItems.length },
+    { id: "watchlist", label: "Watchlist", icon: <Bookmark className="w-4 h-4" />, count: wishlistItems.length },
     { id: "downloads", label: "Downloads", icon: <Download className="w-4 h-4" />, count: downloadItems.length },
     { id: "link", label: "Wallet", icon: <Wallet className="w-4 h-4" />, href: "/wallet" },
     { id: "link", label: "Membership", icon: <Crown className="w-4 h-4" />, href: "/membership" },
@@ -658,7 +658,7 @@ export default function UserProfilePage() {
               {activeTab === "watchlist" && (
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                   <div className="flex items-center justify-between border-b border-border/40 pb-4 mb-6">
-                    <h2 className="text-xl font-black text-foreground">My Wishlist</h2>
+                    <h2 className="text-xl font-black text-foreground">Watchlist</h2>
                     <Link href="/browse" className="text-primary text-sm font-bold hover:underline">Browse</Link>
                   </div>
 

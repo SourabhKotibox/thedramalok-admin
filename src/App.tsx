@@ -80,7 +80,9 @@ function ThemeApplier() {
     const pathSegments = location.split('/').filter(Boolean);
     let pageName = "Home";
     
-    if (pathSegments.length > 0) {
+    if (location === "/admin/login" || location === "/admin-login" || location === "/admin") {
+      pageName = "Admin Login";
+    } else if (pathSegments.length > 0) {
       const firstSegment = pathSegments[0];
       // Convert e.g., "user-profile" to "User Profile"
       pageName = firstSegment
@@ -93,7 +95,8 @@ function ThemeApplier() {
     const frontendPrefixes = [
       "/wallet", "/membership", "/account", "/wishlist", 
       "/help-support", "/browse", "/tv-shows-browse", 
-      "/drama", "/show", "/movie", "/page", "/login", "/register"
+      "/movies-browse", "/short-dramas-browse", "/new-hot-browse",
+      "/drama", "/show", "/movie", "/page", "/login", "/register", "/stories"
     ];
     
     const isFrontend = location === "/" || location === "" || frontendPrefixes.some(p => location.startsWith(p));
@@ -345,6 +348,7 @@ function AdminRoutes() {
               <Route path="/shows" component={ShowsPage} />
               <Route path="/movies/new" component={MovieForm} />
               <Route path="/movies/:id/edit" component={MovieForm} />
+              <Route path="/movies/:id" component={MovieForm} />
               <Route path="/movies" component={MoviesPage} />
               <Route path="/tv-shows/new" component={TvShowForm} />
               <Route path="/tv-shows/:id/edit" component={TvShowForm} />
@@ -434,7 +438,7 @@ function Router() {
   const [location, setLocation] = useLocation();
 
   useEffect(() => {
-    if (token && location === "/admin/login") {
+    if (token && (location === "/admin/login" || location === "/admin-login" || location === "/admin")) {
       setLocation("/dashboard");
     }
   }, [token, location, setLocation]);
@@ -445,6 +449,8 @@ function Router() {
       <Switch>
       {/* Admin routes */}
       <Route path="/admin/login" component={Login} />
+      <Route path="/admin-login" component={Login} />
+      <Route path="/admin" component={Login} />
 
       {/* Public streaming routes */}
       <Route path="/" component={StreamingHomePage} />
@@ -458,9 +464,9 @@ function Router() {
       <Route path="/story/:id" component={StoryPlayerPage} />
       <Route path="/browse/:tab" component={CategoriesBrowsePage} />
       <Route path="/browse" component={CategoriesBrowsePage} />
-      <Route path="/movies" component={MoviesPublicPage} />
-      <Route path="/short-dramas" component={ShortDramasPublicPage} />
-      <Route path="/new-hot" component={NewHotPublicPage} />
+      <Route path="/movies-browse" component={MoviesPublicPage} />
+      <Route path="/short-dramas-browse" component={ShortDramasPublicPage} />
+      <Route path="/new-hot-browse" component={NewHotPublicPage} />
       <Route path="/tv-shows-browse" component={TvShowsPublicPage} />
       <Route path="/account" component={UserProfilePage} />
       <Route path="/wishlist" component={WishlistPage} />

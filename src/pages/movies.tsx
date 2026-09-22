@@ -441,24 +441,27 @@ export default function MoviesPage() {
                   const statusBadge = STATUS_BADGE[movie.status] || STATUS_BADGE.draft;
                   return (
                     <TableRow key={movie.id} className="border-border hover:bg-muted/30">
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={selectedIds.includes(movie.id)}
                           onCheckedChange={() => toggleOne(movie.id)}
                           className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-red-600"
                         />
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="h-16 w-11 rounded-lg overflow-hidden border border-border bg-muted shrink-0 flex items-center justify-center">
+                      <TableCell
+                        className="cursor-pointer"
+                        onClick={() => setLocation(`/movies/${movie.id}/edit`)}
+                      >
+                        <div className="flex items-center gap-3 group">
+                          <div className="h-16 w-11 rounded-lg overflow-hidden border border-border bg-muted shrink-0 flex items-center justify-center group-hover:border-primary/50 transition-colors">
                             {movie.thumbnail ? (
-                              <img src={getImageUrl(movie.thumbnail)} alt={movie.title} className="h-full w-full object-contain" />
+                              <img src={getImageUrl(movie.thumbnail)} alt={movie.title} className="h-full w-full object-contain group-hover:scale-105 transition-transform" />
                             ) : (
                               <ImageIcon className="h-5 w-5 text-muted-foreground/80" />
                             )}
                           </div>
                           <div>
-                            <p className="text-foreground font-medium text-sm">{movie.title}</p>
+                            <p className="text-foreground font-medium text-sm group-hover:text-primary transition-colors">{movie.title}</p>
                             <div className="flex flex-wrap gap-1 mt-0.5">
                               {movie.genres.map((g) => (
                                 <span key={g.name} className="text-xs text-foreground/65">{g.name}</span>
@@ -478,7 +481,7 @@ export default function MoviesPage() {
                         </span>
                       </TableCell>
                       <TableCell className="text-foreground/70 text-sm">{movie.languages[0]?.name || '-'}</TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={() => handleToggleStatus(movie.id, movie.status)}
                           className="text-foreground/70 hover:text-foreground"
@@ -488,21 +491,21 @@ export default function MoviesPage() {
                           </span>
                         </button>
                       </TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <Switch
                           checked={movie.featured}
                           onCheckedChange={() => handleToggleFeatured(movie.id)}
                           className="data-[state=checked]:bg-primary"
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <Switch
                           checked={movie.trending}
                           onCheckedChange={() => handleToggleTrending(movie.id)}
                           className="data-[state=checked]:bg-primary"
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => setLocation(`/movies/${movie.id}/edit`)}
@@ -512,8 +515,9 @@ export default function MoviesPage() {
                             <Edit2 className="h-3.5 w-3.5" />
                           </button>
                           <button
+                            onClick={() => setLocation(`/movies/${movie.id}/edit`)}
                             className="h-8 w-8 flex items-center justify-center rounded-lg bg-primary/15 text-blue-400 hover:bg-primary/80/30 transition-colors"
-                            title="View"
+                            title="View / Edit Details"
                           >
                             <Eye className="h-3.5 w-3.5" />
                           </button>

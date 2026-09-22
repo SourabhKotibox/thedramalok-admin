@@ -18,6 +18,8 @@ export default function Branding() {
   const [loginButtonText, setLoginButtonText] = useState(settings.loginButtonText);
   const [lightLogoUrl, setLightLogoUrl] = useState(settings.lightLogoUrl);
   const [darkLogoUrl, setDarkLogoUrl] = useState(settings.darkLogoUrl);
+  const [lightLogoSize, setLightLogoSize] = useState<number>(settings.lightLogoSize || 36);
+  const [darkLogoSize, setDarkLogoSize] = useState<number>(settings.darkLogoSize || 36);
   const [uploadingFor, setUploadingFor] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
@@ -32,6 +34,8 @@ export default function Branding() {
         loginButtonText,
         lightLogoUrl,
         darkLogoUrl,
+        lightLogoSize,
+        darkLogoSize,
         logoUrl: lightLogoUrl || darkLogoUrl
       });
       toast({
@@ -196,16 +200,22 @@ export default function Branding() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Light Mode Logo */}
               <div className="space-y-3">
-                <Label className="flex items-center gap-2">
-                  <Sun className="h-4 w-4" /> Light Mode Logo
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label className="flex items-center gap-2">
+                    <Sun className="h-4 w-4" /> Light Mode Logo
+                  </Label>
+                  <span className="text-xs font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
+                    {lightLogoSize}px
+                  </span>
+                </div>
                 <div className="flex flex-col gap-4">
-                  <div className="h-32 w-40 rounded-2xl bg-gradient-to-br from-background/70 to-muted/50 border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden">
+                  <div className="h-32 w-full rounded-2xl bg-gradient-to-br from-background/70 to-muted/50 border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden">
                     {lightLogoUrl ? (
                       <img
                         src={lightLogoUrl}
                         alt="Light Logo Preview"
-                        className="h-full w-full object-contain p-4"
+                        className="w-auto object-contain p-4 transition-all"
+                        style={{ height: `${Math.min(lightLogoSize, 96)}px`, maxHeight: "96px" }}
                       />
                     ) : (
                       <div className="flex flex-col items-center gap-2 text-muted-foreground">
@@ -215,6 +225,21 @@ export default function Branding() {
                     )}
                   </div>
                   <div className="space-y-2">
+                    <div className="space-y-1.5 bg-muted/40 p-3 rounded-xl border border-border/40">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Logo Size</span>
+                        <span>{lightLogoSize}px</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={16}
+                        max={100}
+                        step={1}
+                        value={lightLogoSize}
+                        onChange={(e) => setLightLogoSize(Number(e.target.value))}
+                        className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                      />
+                    </div>
                     <Input
                       type="file"
                       accept="image/*"
@@ -245,16 +270,22 @@ export default function Branding() {
 
               {/* Dark Mode Logo */}
               <div className="space-y-3">
-                <Label className="flex items-center gap-2">
-                  <Moon className="h-4 w-4" /> Dark Mode Logo
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label className="flex items-center gap-2">
+                    <Moon className="h-4 w-4" /> Dark Mode Logo
+                  </Label>
+                  <span className="text-xs font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
+                    {darkLogoSize}px
+                  </span>
+                </div>
                 <div className="flex flex-col gap-4">
-                  <div className="h-32 w-40 rounded-2xl bg-gradient-to-br from-muted/70 to-background/50 border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden">
+                  <div className="h-32 w-full rounded-2xl bg-gradient-to-br from-muted/70 to-background/50 border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden">
                     {darkLogoUrl ? (
                       <img
                         src={darkLogoUrl}
                         alt="Dark Logo Preview"
-                        className="h-full w-full object-contain p-4"
+                        className="w-auto object-contain p-4 transition-all"
+                        style={{ height: `${Math.min(darkLogoSize, 96)}px`, maxHeight: "96px" }}
                       />
                     ) : (
                       <div className="flex flex-col items-center gap-2 text-muted-foreground">
@@ -264,6 +295,21 @@ export default function Branding() {
                     )}
                   </div>
                   <div className="space-y-2">
+                    <div className="space-y-1.5 bg-muted/40 p-3 rounded-xl border border-border/40">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Logo Size</span>
+                        <span>{darkLogoSize}px</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={16}
+                        max={100}
+                        step={1}
+                        value={darkLogoSize}
+                        onChange={(e) => setDarkLogoSize(Number(e.target.value))}
+                        className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                      />
+                    </div>
                     <Input
                       type="file"
                       accept="image/*"
