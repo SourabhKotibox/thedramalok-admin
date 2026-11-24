@@ -2559,12 +2559,14 @@ export const getStories = async (options?: {
   trending?: string;
   author?: string;
   category?: string;
+  plan?: string;
 }) => {
   const params = new URLSearchParams();
   if (options?.page) params.append('page', options.page.toString());
   if (options?.limit) params.append('limit', options.limit.toString());
   if (options?.search) params.append('search', options.search);
   if (options?.status) params.append('status', options.status);
+  if (options?.plan) params.append('plan', options.plan);
   if (options?.genre) params.append('genre', options.genre);
   if (options?.language) params.append('language', options.language);
   if (options?.featured) params.append('featured', options.featured);
@@ -2648,10 +2650,12 @@ export const useGetStories = (options?: {
   trending?: string;
   author?: string;
   category?: string;
+  plan?: string;
 }) => {
   return useQuery({
     queryKey: ['stories', options],
     queryFn: () => getStories(options),
+    placeholderData: (prev) => prev,
   });
 };
 
@@ -2721,8 +2725,9 @@ export const useUpdateStoryStatus = () => {
   const queryClient = useQueryClient();
   return useMutation<any, Error, { id: string; data: { status: string; rejectionReason?: string } }>({
     mutationFn: ({ id, data }) => updateStoryStatus(id, data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['stories'] });
+      queryClient.invalidateQueries({ queryKey: ['story', variables.id] });
     },
   });
 };
@@ -2745,6 +2750,69 @@ export const useToggleStoryTrending = () => {
       queryClient.invalidateQueries({ queryKey: ['stories'] });
     },
   });
+};
+
+// Persist a manual display order for stories (ids in the desired order).
+export const reorderStories = async (ids: string[]) => {
+  return api('/stories/reorder', {
+    method: 'PATCH',
+    body: JSON.stringify({ ids }),
+  });
+};
+
+export const useReorderStories = () => {
+  const queryClient = useQueryClient();
+  return useMutation<any, Error, string[]>({
+    mutationFn: reorderStories,
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['stories'] });
+      queryClient.invalidateQueries({ queryKey: ['public-stories'] });
+    },
+  });
+};
+
+export type UploadedStoryAsset = {
+  filePath: string;
+  url: string;
+  name?: string;
+  mimeType?: string;
+};
+
+// Upload an image or audio file for a story into the "stories" media-library folder, with progress.
+export const uploadStoryAsset = async (
+  file: File,
+  onProgress?: (percent: number) => void
+): Promise<UploadedStoryAsset> => {
+  const folders: any = await getMediaFolders();
+  let folderId = (folders?.data || []).find(
+    (f: any) => (f?.name || '').toLowerCase() === 'stories' && !f?.parentFolder
+  )?._id;
+  if (!folderId) {
+    const created: any = await createMediaFolder('stories');
+    folderId = created?.data?._id;
+  }
+  if (!folderId) throw new Error('Could not prepare the Stories media folder');
+
+  const formData = new FormData();
+  formData.append('source', 'stories');
+  formData.append('file', file);
+
+  const res: any = await api(`/media/folders/${folderId}/files`, {
+    method: 'POST',
+    body: formData,
+    onUploadProgress: ({ loaded, total }) => {
+      if (total > 0) onProgress?.(Math.round((loaded / total) * 100));
+    },
+  });
+  const uploaded = res?.data?.[0];
+  const filePath = uploaded?.filePath || uploaded?.url;
+  if (!filePath) throw new Error(res?.error || 'Upload failed');
+  return {
+    filePath,
+    url: getImageUrl(filePath),
+    name: uploaded?.originalName || file.name,
+    mimeType: uploaded?.mimeType || file.type,
+  };
 };
 
 export const setupAdmin = async (data: { setupKey: string; email: string; password: string; name?: string }) => {

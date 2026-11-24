@@ -20,6 +20,7 @@ import {
 } from "@/lib/api-client";
 import { useToast } from "@/hooks/use-toast";
 import SubscriptionPlansModal from "@/components/SubscriptionPlansModal";
+import { storyAudioSrc } from "@/components/stories/story-utils";
 
 export default function StoryPlayerPage() {
   const [, params] = useRoute("/story/:id");
@@ -81,13 +82,20 @@ export default function StoryPlayerPage() {
   }, [playbackRate]);
 
   const togglePlay = () => {
-    if (!audioRef.current) return;
-    if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play();
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (!audio.paused) {
+      audio.pause();
+      setIsPlaying(false);
+      return;
     }
-    setIsPlaying(!isPlaying);
+    audio
+      .play()
+      .then(() => setIsPlaying(true))
+      .catch(() => {
+        setIsPlaying(false);
+        toast({ title: "Couldn't play this story", description: "The audio file is unavailable right now.", variant: "destructive" });
+      });
   };
 
   const handleTimeUpdate = () => {
@@ -133,15 +141,8 @@ export default function StoryPlayerPage() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  const getAudioSrc = () => {
-    if (!story) return '';
-    if (story.audioUrl) return story.audioUrl;
-    if (story.audioFile) {
-      if (story.audioFile.startsWith('http')) return story.audioFile;
-      return getImageUrl(story.audioFile);
-    }
-    return '';
-  };
+  // Relative paths (e.g. /uploads/...) must be resolved against the API host.
+  const getAudioSrc = () => storyAudioSrc(story);
 
   const handleToggleWishlist = () => {
     if (!user) {
@@ -445,6 +446,8 @@ export default function StoryPlayerPage() {
                       onTimeUpdate={handleTimeUpdate}
                       onLoadedMetadata={handleLoadedMetadata}
                       onEnded={handleEnded}
+                      onPlay={() => setIsPlaying(true)}
+                      onPause={() => setIsPlaying(false)}
                     />
                   </div>
                 </div>
